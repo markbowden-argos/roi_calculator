@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fleet Telematics ROI Calculator — Argos Connected Solutions</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      --red:        #bf1614;
+      --red-dark:   #8a1010;
+      --red-glow:   rgba(191,22,20,0.12);
+      --bg:         #f4f4f4;
+      --surface:    #ffffff;
+      --surface-2:  #f8f8f8;
+      --border:     #e2e2e2;
+      --text:       #1a1a1a;
+      --muted:      #666;
+      --green:      #16a34a;
+      --green-bg:   #f0fdf4;
+      --radius:     10px;
+      --shadow:     0 2px 24px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #000;
+      border-bottom: 3px solid var(--red);
+      padding: 0 32px;
+    }
+    .header-bar {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .header-logo img { height: 36px; width: auto; display: block; }
+    .header-geotab img { height: 28px; width: auto; display: block; opacity: .9; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff 0%, #fdf2f2 60%, #fce8e8 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 52px 32px 44px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      background: var(--red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      border-radius: 50px;
+      padding: 4px 14px;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--red); }
+    .hero p {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 36px 24px 48px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 680px) {
+      main { grid-template-columns: 1fr; padding: 24px 16px 36px; }
+      header { padding: 0 16px; }
+      .hero { padding: 36px 16px 32px; }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-header {
+      background: var(--red);
+      color: #fff;
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .card-header h2 { font-size: 15px; font-weight: 700; }
+    .card-header p  { font-size: 12px; opacity: .85; margin-top: 2px; }
+    .card-icon { font-size: 22px; flex-shrink: 0; }
+    .card-body { padding: 22px; }
+
+    /* ── Inputs ── */
+    .field { margin-bottom: 20px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+    .field-hint { text-transform: none; font-weight: 400; letter-spacing: 0; font-size: 11px; }
+    .field > input[type=number] {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface-2);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      -moz-appearance: textfield;
+    }
+    .field > input[type=number]:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px var(--red-glow);
+    }
+    .prefix-wrap {
+      display: flex;
+      align-items: center;
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .prefix-wrap:focus-within {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px var(--red-glow);
+    }
+    .prefix {
+      padding: 11px 0 11px 14px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--muted);
+      user-select: none;
+    }
+    .prefix-wrap input[type=number] {
+      border: none;
+      background: transparent;
+      padding: 11px 14px 11px 4px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      outline: none;
+      flex: 1;
+      min-width: 0;
+      -moz-appearance: textfield;
+    }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 14px;
+    }
+
+    /* ── Results ── */
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-row:last-of-type { border-bottom: none; }
+    .result-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .result-label-text { line-height: 1.3; }
+    .result-assumption {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 1px;
+    }
+    .result-icon { font-size: 20px; flex-shrink: 0; }
+    .result-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green);
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+    .result-zero { color: var(--muted); }
+
+    .total-box {
+      background: var(--red);
+      color: #fff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .total-box .total-label { font-size: 13px; font-weight: 700; opacity: .9; }
+    .total-box .total-sub { font-size: 11px; opacity: .7; margin-top: 2px; }
+    .total-box .total-value { font-size: 26px; font-weight: 800; }
+
+    .monthly-line {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      padding-top: 12px;
+    }
+    .monthly-line strong { color: var(--text); }
+
+    /* ── Breakdown bar ── */
+    .breakdown-bar {
+      display: flex;
+      height: 10px;
+      border-radius: 50px;
+      overflow: hidden;
+      margin-top: 18px;
+      gap: 2px;
+    }
+    .bar-seg { height: 100%; transition: width .4s ease; border-radius: 50px; }
+    .bar-fuel  { background: #2563eb; }
+    .bar-maint { background: #d97706; }
+    .bar-ins   { background: #7c3aed; }
+    .bar-prod  { background: var(--green); }
+
+    .bar-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin-top: 10px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .legend-dot {
+      width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      grid-column: 1 / -1;
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      line-height: 1.6;
+    }
+
+    /* ── CTA ── */
+    .cta-block {
+      grid-column: 1 / -1;
+      background: #000;
+      border-radius: var(--radius);
+      padding: 32px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .cta-block h3 { color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .cta-block p  { color: #aaa; font-size: 13px; max-width: 420px; }
+    .cta-btn {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: 13px 28px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+      display: inline-block;
+      transition: background .15s, transform .1s;
+      box-shadow: 0 4px 14px rgba(191,22,20,0.4);
+    }
+    .cta-btn:hover { background: var(--red-dark); }
+    .cta-btn:active { transform: scale(.97); }
+
+    /* ── Print ── */
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      padding: 9px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .15s, background .15s;
+      margin-top: 16px;
+    }
+    .print-btn:hover { border-color: var(--red); background: #fdf2f2; }
+
+    .print-bar {
+      grid-column: 1 / -1;
+      text-align: center;
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: #000;
+      border-top: 2px solid var(--red);
+      padding: 22px 32px;
+      text-align: center;
+    }
+    footer img { height: 28px; width: auto; opacity: .6; margin-bottom: 8px; }
+    footer p { color: #555; font-size: 11px; }
+    footer a { color: #777; text-decoration: none; }
+    footer a:hover { color: #aaa; }
+
+    @media print {
+      header, footer, .cta-block, .print-bar { display: none !important; }
+      body { background: #fff; }
+      main { display: block; padding: 0; }
+      .card { box-shadow: none; border: 1px solid #ddd; margin-bottom: 20px; break-inside: avoid; }
+      .hero { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-bar">
+    <div class="header-logo">
+      <img src="./argos-logo-white.png" alt="Argos Connected Solutions"
+           onerror="this.src='https://static.wixstatic.com/media/cd21ab_b51892a7f47b4bbf856884a46bd3f756~mv2.png/v1/fill/w_228,h_81,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Argos%20logo%20-%202023%20(1).png'; this.style.filter='brightness(0) invert(1)'" />
+    </div>
+    <div class="header-geotab">
+      <img src="https://static.wixstatic.com/media/cd21ab_1a9b8c949f0d4d489990d7ae1e1d9eb3~mv2.png/v1/fill/w_509,h_86,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/geotab%20resller%20logo.png"
+           alt="Certified Geotab Reseller" />
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Free Tool</div>
+  <h1>Fleet Telematics <span>ROI Calculator</span></h1>
+  <p>Enter your fleet details below to instantly estimate your annual savings from Geotab fleet management technology.</p>
+</div>
+
+<!-- MAIN GRID -->
+<main>
+
+  <!-- LEFT: Inputs -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🚛</div>
+      <div>
+        <h2>Your Fleet Details</h2>
+        <p>Adjust any field to match your operation</p>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="field">
+        <label>Total Fleet Size <span class="field-hint">(number of vehicles)</span></label>
+        <input type="number" id="roi-fleet" value="25" min="1" placeholder="e.g. 25" />
+      </div>
+
+      <hr class="divider" />
+      <div class="section-label">Monthly Operating Costs</div>
+
+      <div class="field">
+        <label>Fuel Cost <span class="field-hint">per vehicle / month</span></label>
+        <div class="prefix-wrap">
+          <span class="prefix">$</span>
+          <input type="number" id="roi-fuel" value="400" min="0" placeholder="400" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Maintenance Cost <span class="field-hint">per vehicle / month</span></label>
+        <div class="prefix-wrap">
+          <span class="prefix">$</span>
+          <input type="number" id="roi-maint" value="200" min="0" placeholder="200" />
+        </div>
+      </div>
+
+      <hr class="divider" />
+      <div class="section-label">Annual &amp; Labour Costs</div>
+
+      <div class="field">
+        <label>Insurance Cost <span class="field-hint">per vehicle / year</span></label>
+        <div class="prefix-wrap">
+          <span class="prefix">$</span>
+          <input type="number" id="roi-ins" value="2400" min="0" placeholder="2400" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Average Driver Hourly Wage</label>
+        <div class="prefix-wrap">
+          <span class="prefix">$</span>
+          <input type="number" id="roi-wage" value="22" min="0" placeholder="22" />
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📊</div>
+      <div>
+        <h2>Projected Annual Savings</h2>
+        <p>Updates live as you adjust your numbers</p>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="result-row">
+        <div class="result-label">
+          <span class="result-icon">⛽</span>
+          <div class="result-label-text">
+            Fuel Savings
+            <span class="result-assumption">12% reduction via idling alerts &amp; route optimization</span>
+          </div>
+        </div>
+        <span class="result-value" id="roi-r-fuel">$0</span>
+      </div>
+
+      <div class="result-row">
+        <div class="result-label">
+          <span class="result-icon">🔧</span>
+          <div class="result-label-text">
+            Maintenance Savings
+            <span class="result-assumption">15% reduction via predictive diagnostics</span>
+          </div>
+        </div>
+        <span class="result-value" id="roi-r-maint">$0</span>
+      </div>
+
+      <div class="result-row">
+        <div class="result-label">
+          <span class="result-icon">🛡</span>
+          <div class="result-label-text">
+            Insurance Reduction
+            <span class="result-assumption">10% savings from improved driver behaviour &amp; reporting</span>
+          </div>
+        </div>
+        <span class="result-value" id="roi-r-ins">$0</span>
+      </div>
+
+      <div class="result-row">
+        <div class="result-label">
+          <span class="result-icon">⏱</span>
+          <div class="result-label-text">
+            Productivity Gains
+            <span class="result-assumption">2 hrs/vehicle/week recovered via dispatch &amp; routing</span>
+          </div>
+        </div>
+        <span class="result-value" id="roi-r-prod">$0</span>
+      </div>
+
+      <div class="total-box">
+        <div>
+          <div class="total-label">Estimated Annual Savings</div>
+          <div class="total-sub" id="roi-fleet-label">Based on 25 vehicles</div>
+        </div>
+        <div class="total-value" id="roi-total">$0</div>
+      </div>
+
+      <div class="monthly-line">Monthly equivalent: <strong id="roi-monthly">$0</strong></div>
+
+      <!-- Visual breakdown bar -->
+      <div class="breakdown-bar" id="bar-wrap">
+        <div class="bar-seg bar-fuel"  id="bar-fuel"  style="width:25%"></div>
+        <div class="bar-seg bar-maint" id="bar-maint" style="width:25%"></div>
+        <div class="bar-seg bar-ins"   id="bar-ins"   style="width:25%"></div>
+        <div class="bar-seg bar-prod"  id="bar-prod"  style="width:25%"></div>
+      </div>
+      <div class="bar-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Fuel</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Maintenance</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Insurance</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Productivity</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> Projections are estimates based on fleet telematics industry averages and are intended as a guide only.
+    Fuel savings assume a 12% reduction driven by idling reduction alerts, route optimization, and driver behaviour coaching.
+    Maintenance savings assume a 15% reduction from predictive engine diagnostics and proactive servicing alerts.
+    Insurance savings assume a 10% reduction from improved driving scores and incident documentation.
+    Productivity savings assume 2 hours per vehicle per week recovered through improved dispatch, automated logbooks, and route efficiency.
+    Actual results will vary based on fleet type, geography, operational patterns, driver behaviour, and current technology in use.
+  </div>
+
+  <!-- Print button -->
+  <div class="print-bar">
+    <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+  </div>
+
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <img src="./argos-logo-white.png" alt="Argos Connected Solutions"
+       onerror="this.src='https://static.wixstatic.com/media/cd21ab_b51892a7f47b4bbf856884a46bd3f756~mv2.png/v1/fill/w_228,h_81,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Argos%20logo%20-%202023%20(1).png'; this.style.filter='brightness(0) invert(1)'" />
+  <p>© 2025 Argos Connected Solutions &nbsp;·&nbsp; Certified Geotab Reseller &nbsp;·&nbsp;
+    <a href="https://www.argosconnected.com" target="_blank">argosconnected.com</a>
+  </p>
+</footer>
+
+<script>
+(function() {
+  function fmt(n) {
+    return '$' + Math.round(n).toLocaleString('en-US');
+  }
+
+  function calc() {
+    var fleet = parseFloat(document.getElementById('roi-fleet').value) || 0;
+    var fuel  = parseFloat(document.getElementById('roi-fuel').value)  || 0;
+    var maint = parseFloat(document.getElementById('roi-maint').value) || 0;
+    var ins   = parseFloat(document.getElementById('roi-ins').value)   || 0;
+    var wage  = parseFloat(document.getElementById('roi-wage').value)  || 0;
+
+    var fuelSav  = fleet * fuel  * 12 * 0.12;
+    var maintSav = fleet * maint * 12 * 0.15;
+    var insSav   = fleet * ins   * 0.10;
+    var prodSav  = fleet * wage  * 2 * 52;
+    var total    = fuelSav + maintSav + insSav + prodSav;
+
+    document.getElementById('roi-r-fuel').textContent  = fmt(fuelSav);
+    document.getElementById('roi-r-maint').textContent = fmt(maintSav);
+    document.getElementById('roi-r-ins').textContent   = fmt(insSav);
+    document.getElementById('roi-r-prod').textContent  = fmt(prodSav);
+    document.getElementById('roi-total').textContent   = fmt(total);
+    document.getElementById('roi-monthly').textContent = fmt(total / 12);
+    document.getElementById('roi-fleet-label').textContent = 'Based on ' + Math.round(fleet) + ' vehicle' + (fleet === 1 ? '' : 's');
+
+    // Colour the result values — zero gets muted style
+    ['roi-r-fuel','roi-r-maint','roi-r-ins','roi-r-prod'].forEach(function(id) {
+      var el = document.getElementById(id);
+      el.classList.toggle('result-zero', parseFloat(el.textContent.replace(/[^0-9.]/g,'')) === 0);
+    });
+
+    // Update breakdown bar proportions
+    if (total > 0) {
+      document.getElementById('bar-fuel').style.width  = (fuelSav  / total * 100).toFixed(1) + '%';
+      document.getElementById('bar-maint').style.width = (maintSav / total * 100).toFixed(1) + '%';
+      document.getElementById('bar-ins').style.width   = (insSav   / total * 100).toFixed(1) + '%';
+      document.getElementById('bar-prod').style.width  = (prodSav  / total * 100).toFixed(1) + '%';
+    } else {
+      ['bar-fuel','bar-maint','bar-ins','bar-prod'].forEach(function(id) {
+        document.getElementById(id).style.width = '25%';
+      });
+    }
+  }
+
+  ['roi-fleet','roi-fuel','roi-maint','roi-ins','roi-wage'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', calc);
+  });
+
+  calc(); // run on load with defaults
+})();
+</script>
+
+</body>
+</html>
