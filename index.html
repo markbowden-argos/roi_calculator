@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fleet ROI Calculator — Argos Connected Solutions</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    :root {
+      --red:       #bf1614; --red-dark:  #8a1010;
+      --red-glow:  rgba(191,22,20,0.12);
+      --bg:        #f4f4f4; --surface:   #ffffff; --surface-2: #f8f8f8;
+      --border:    #e2e2e2; --text:      #1a1a1a; --muted:     #666;
+      --green:     #16a34a; --radius:    10px;
+      --shadow:    0 2px 24px rgba(0,0,0,0.08);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+    /* ── Header ── */
+    header { background: #000; border-bottom: 3px solid var(--red); padding: 0 32px; }
+    .header-bar { max-width: 1040px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .header-logo img { height: 36px; width: auto; display: block; }
+    .header-geotab img { height: 28px; width: auto; display: block; filter: brightness(0) invert(1); opacity: .9; }
+
+    /* ── Hero ── */
+    .hero { background: linear-gradient(135deg, #fff 0%, #fdf2f2 60%, #fce8e8 100%); border-bottom: 1px solid var(--border); padding: 48px 32px 40px; text-align: center; }
+    .hero-eyebrow { display: inline-block; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border-radius: 50px; padding: 4px 14px; margin-bottom: 14px; }
+    .hero h1 { font-size: clamp(24px, 4vw, 36px); font-weight: 800; color: var(--text); line-height: 1.2; margin-bottom: 10px; }
+    .hero h1 span { color: var(--red); }
+    .hero p { font-size: 15px; color: var(--muted); max-width: 580px; margin: 0 auto; }
+
+    /* ── Section layout ── */
+    .calc-section { max-width: 1040px; margin: 0 auto; padding: 36px 24px 0; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .section-num { background: var(--red); color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+    .section-header h2 { font-size: 18px; font-weight: 800; color: var(--text); }
+    .section-header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Two-column grid ── */
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 720px) {
+      .calc-grid { grid-template-columns: 1fr; }
+      header { padding: 0 16px; }
+      .hero { padding: 32px 16px 28px; }
+      .calc-section { padding: 24px 16px 0; }
+    }
+
+    /* ── Cards ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .card-header { background: var(--red); color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 10px; }
+    .card-header h3 { font-size: 14px; font-weight: 700; }
+    .card-header p  { font-size: 11px; opacity: .85; margin-top: 1px; }
+    .card-icon { font-size: 20px; flex-shrink: 0; }
+    .card-body { padding: 20px; }
+
+    /* ── Number inputs ── */
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+    .field-hint { text-transform: none; font-weight: 400; letter-spacing: 0; }
+    .field > input[type=number] { width: 100%; border: 1.5px solid var(--border); border-radius: 7px; padding: 10px 12px; font-size: 17px; font-weight: 600; color: var(--text); background: var(--surface-2); outline: none; transition: border-color .15s, box-shadow .15s; -moz-appearance: textfield; }
+    .field > input[type=number]:focus { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-glow); }
+    .prefix-wrap { display: flex; align-items: center; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 7px; transition: border-color .15s, box-shadow .15s; }
+    .prefix-wrap:focus-within { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-glow); }
+    .prefix { padding: 10px 0 10px 12px; font-size: 15px; font-weight: 600; color: var(--muted); user-select: none; }
+    .prefix-wrap input[type=number] { border: none; background: transparent; padding: 10px 12px 10px 4px; font-size: 17px; font-weight: 600; color: var(--text); outline: none; flex: 1; min-width: 0; -moz-appearance: textfield; }
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .group-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 12px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Results ── */
+    .result-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border); }
+    .result-row:last-of-type { border-bottom: none; }
+    .result-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); flex: 1; }
+    .result-label-text { line-height: 1.3; }
+    .result-assumption { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 1px; }
+    .result-icon { font-size: 18px; flex-shrink: 0; }
+    .result-value { font-size: 16px; font-weight: 700; color: var(--green); white-space: nowrap; margin-left: 10px; }
+    .total-box { background: var(--red); color: #fff; border-radius: 10px; padding: 16px 18px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .total-label { font-size: 12px; font-weight: 700; opacity: .9; }
+    .total-sub   { font-size: 10px; opacity: .7; margin-top: 2px; }
+    .total-value { font-size: 24px; font-weight: 800; }
+    .monthly-line { text-align: center; font-size: 12px; color: var(--muted); padding-top: 10px; }
+    .monthly-line strong { color: var(--text); }
+
+    /* ── Breakdown bar ── */
+    .breakdown-bar { display: flex; height: 9px; border-radius: 50px; overflow: hidden; margin-top: 16px; gap: 2px; }
+    .bar-seg { height: 100%; transition: width .4s ease; border-radius: 50px; }
+    .bar-fuel { background: #2563eb; } .bar-maint { background: #d97706; }
+    .bar-ins  { background: #7c3aed; } .bar-prod  { background: var(--green); }
+    .bar-acc  { background: #dc2626; } .bar-exon  { background: #0891b2; }
+    .bar-cam-ins { background: #7c3aed; } .bar-ret { background: var(--green); }
+    .bar-down { background: #d97706; }
+    .bar-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Section divider ── */
+    .section-divider { max-width: 1040px; margin: 32px auto 0; padding: 0 24px; }
+    .section-divider hr { border: none; border-top: 2px solid var(--border); }
+
+    /* ── Bottom area ── */
+    .bottom-area { max-width: 1040px; margin: 0 auto; padding: 24px 24px 48px; }
+    .disclaimer { font-size: 11px; color: var(--muted); font-style: italic; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; line-height: 1.6; margin-bottom: 20px; }
+    .print-bar { text-align: center; }
+    .print-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); color: var(--text); border: 1.5px solid var(--border); border-radius: 50px; padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color .15s, background .15s; }
+    .print-btn:hover { border-color: var(--red); background: #fdf2f2; }
+
+    /* ── Footer ── */
+    footer { background: #000; border-top: 2px solid var(--red); padding: 22px 32px; text-align: center; }
+    footer img { height: 28px; width: auto; opacity: .6; margin-bottom: 8px; }
+    footer p { color: #555; font-size: 11px; }
+    footer a { color: #777; text-decoration: none; }
+    footer a:hover { color: #aaa; }
+
+    @media print {
+      header, footer, .print-bar { display: none !important; }
+      body { background: #fff; }
+      .calc-section, .bottom-area { padding-left: 0; padding-right: 0; }
+      .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-bar">
+    <div class="header-logo">
+      <img src="./argos-logo-white.png" alt="Argos Connected Solutions"
+           onerror="this.src='https://static.wixstatic.com/media/cd21ab_b51892a7f47b4bbf856884a46bd3f756~mv2.png/v1/fill/w_228,h_81,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Argos%20logo%20-%202023%20(1).png'; this.style.filter='brightness(0) invert(1)'" />
+    </div>
+    <div class="header-geotab">
+      <img src="https://static.wixstatic.com/media/cd21ab_1a9b8c949f0d4d489990d7ae1e1d9eb3~mv2.png/v1/fill/w_509,h_86,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/geotab%20resller%20logo.png" alt="Certified Geotab Reseller" />
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Free Tool</div>
+  <h1>Fleet Telematics &amp; Dash Camera <span>ROI Calculator</span></h1>
+  <p>Enter your fleet details below to instantly estimate your annual savings from Geotab telematics and dash camera technology.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 1 — FLEET TELEMATICS ROI
+     ══════════════════════════════════════════════════════════ -->
+<div class="calc-section">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <div>
+      <h2>Fleet Telematics ROI</h2>
+      <p>Savings from GPS tracking, route optimization, and driver behaviour coaching</p>
+    </div>
+  </div>
+
+  <div class="calc-grid">
+
+    <!-- Inputs -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🚛</div>
+        <div><h3>Your Fleet Details</h3><p>Adjust fields to match your operation</p></div>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Total Fleet Size <span class="field-hint">(number of vehicles)</span></label>
+          <input type="number" id="roi-fleet" value="25" min="1" />
+        </div>
+        <hr class="divider" />
+        <div class="group-label">Monthly Operating Costs</div>
+        <div class="field">
+          <label>Fuel Cost <span class="field-hint">per vehicle / month</span></label>
+          <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="roi-fuel" value="400" min="0" /></div>
+        </div>
+        <div class="field">
+          <label>Maintenance Cost <span class="field-hint">per vehicle / month</span></label>
+          <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="roi-maint" value="200" min="0" /></div>
+        </div>
+        <hr class="divider" />
+        <div class="group-label">Annual &amp; Labour Costs</div>
+        <div class="field">
+          <label>Insurance Cost <span class="field-hint">per vehicle / year</span></label>
+          <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="roi-ins" value="2400" min="0" /></div>
+        </div>
+        <div class="field">
+          <label>Average Driver Hourly Wage</label>
+          <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="roi-wage" value="22" min="0" /></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telematics Results -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+        <div><h3>Projected Annual Savings</h3><p>Updates live as you adjust your numbers</p></div>
+      </div>
+      <div class="card-body">
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">⛽</span><div class="result-label-text">Fuel Savings<span class="result-assumption">12% reduction via idling alerts &amp; route optimization</span></div></div>
+          <span class="result-value" id="roi-r-fuel">$0</span>
+        </div>
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">🔧</span><div class="result-label-text">Maintenance Savings<span class="result-assumption">15% reduction via predictive diagnostics</span></div></div>
+          <span class="result-value" id="roi-r-maint">$0</span>
+        </div>
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">🛡</span><div class="result-label-text">Insurance Reduction<span class="result-assumption">10% savings from improved driver behaviour</span></div></div>
+          <span class="result-value" id="roi-r-ins">$0</span>
+        </div>
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">⏱</span><div class="result-label-text">Productivity Gains<span class="result-assumption">2 hrs/vehicle/week recovered via dispatch &amp; routing</span></div></div>
+          <span class="result-value" id="roi-r-prod">$0</span>
+        </div>
+        <div class="total-box">
+          <div><div class="total-label">Estimated Annual Savings</div><div class="total-sub" id="roi-fleet-label">Based on 25 vehicles</div></div>
+          <div class="total-value" id="roi-total">$0</div>
+        </div>
+        <div class="monthly-line">Monthly equivalent: <strong id="roi-monthly">$0</strong></div>
+        <div class="breakdown-bar">
+          <div class="bar-seg bar-fuel"  id="bar-fuel"  style="width:25%"></div>
+          <div class="bar-seg bar-maint" id="bar-maint" style="width:25%"></div>
+          <div class="bar-seg bar-ins"   id="bar-ins"   style="width:25%"></div>
+          <div class="bar-seg bar-prod"  id="bar-prod"  style="width:25%"></div>
+        </div>
+        <div class="bar-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Fuel</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Maintenance</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Insurance</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Productivity</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 2 — DASH CAMERA SAFETY ROI
+     ══════════════════════════════════════════════════════════ -->
+<div class="section-divider"><hr /></div>
+
+<div class="calc-section">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <div>
+      <h2>Dash Camera Safety ROI</h2>
+      <p>Savings from accident reduction, driver exoneration, insurance, and driver retention</p>
+    </div>
+  </div>
+
+  <div class="calc-grid">
+
+    <!-- Camera Inputs -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📹</div>
+        <div><h3>Safety &amp; Incident Data</h3><p>Use actuals or industry averages</p></div>
+      </div>
+      <div class="card-body">
+
+        <div class="group-label">Fleet &amp; Incident Data</div>
+        <div class="field">
+          <label>Vehicles with Dash Cameras</label>
+          <input type="number" id="cam-vehicles" value="25" min="1" />
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Incidents / Year</label>
+            <input type="number" id="cam-incidents" value="6" min="0" />
+          </div>
+          <div class="field">
+            <label>Avg Cost / Incident</label>
+            <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="cam-incident-cost" value="16500" min="0" /></div>
+          </div>
+        </div>
+
+        <hr class="divider" />
+        <div class="group-label">Insurance &amp; Downtime</div>
+        <div class="field">
+          <label>Annual Insurance Premium <span class="field-hint">per vehicle</span></label>
+          <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="cam-ins" value="2400" min="0" /></div>
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Downtime Days <span class="field-hint">per incident</span></label>
+            <input type="number" id="cam-downtime-days" value="3" min="0" />
+          </div>
+          <div class="field">
+            <label>Daily Rental Cost</label>
+            <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="cam-daily-cost" value="250" min="0" /></div>
+          </div>
+        </div>
+
+        <hr class="divider" />
+        <div class="group-label">Driver Data</div>
+        <div class="field">
+          <label>Number of Drivers</label>
+          <input type="number" id="cam-drivers" value="25" min="1" />
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Hiring Cost / Driver</label>
+            <div class="prefix-wrap"><span class="prefix">$</span><input type="number" id="cam-hire-cost" value="8000" min="0" /></div>
+          </div>
+          <div class="field">
+            <label>Annual Turnover %</label>
+            <div class="prefix-wrap"><span class="prefix">%</span><input type="number" id="cam-turnover" value="25" min="0" max="100" /></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Camera Results -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+        <div><h3>Projected Safety Savings</h3><p>Annual savings from Geotab dash cameras</p></div>
+      </div>
+      <div class="card-body">
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">🚨</span><div class="result-label-text">Accident Reduction<span class="result-assumption">22% fewer incidents with camera monitoring &amp; coaching</span></div></div>
+          <span class="result-value" id="cam-r-acc">$0</span>
+        </div>
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">⚖️</span><div class="result-label-text">False Claim Exoneration<span class="result-assumption">Video evidence resolves 80% of disputed incidents faster</span></div></div>
+          <span class="result-value" id="cam-r-exon">$0</span>
+        </div>
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">🛡</span><div class="result-label-text">Insurance Reduction<span class="result-assumption">12% premium reduction from improved safety profile</span></div></div>
+          <span class="result-value" id="cam-r-ins">$0</span>
+        </div>
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">🚗</span><div class="result-label-text">Vehicle Downtime Savings<span class="result-assumption">Fewer incidents = fewer rental &amp; replacement days</span></div></div>
+          <span class="result-value" id="cam-r-down">$0</span>
+        </div>
+        <div class="result-row">
+          <div class="result-label"><span class="result-icon">👤</span><div class="result-label-text">Driver Retention<span class="result-assumption">15% turnover reduction via coaching &amp; accountability</span></div></div>
+          <span class="result-value" id="cam-r-ret">$0</span>
+        </div>
+        <div class="total-box">
+          <div><div class="total-label">Estimated Annual Safety Savings</div><div class="total-sub" id="cam-fleet-label">Based on 25 camera vehicles</div></div>
+          <div class="total-value" id="cam-total">$0</div>
+        </div>
+        <div class="monthly-line">Monthly equivalent: <strong id="cam-monthly">$0</strong></div>
+        <div class="breakdown-bar">
+          <div class="bar-seg bar-acc"     id="cam-bar-acc"  style="width:20%"></div>
+          <div class="bar-seg bar-exon"    id="cam-bar-exon" style="width:20%"></div>
+          <div class="bar-seg bar-cam-ins" id="cam-bar-ins"  style="width:20%"></div>
+          <div class="bar-seg bar-down"    id="cam-bar-down" style="width:20%"></div>
+          <div class="bar-seg bar-ret"     id="cam-bar-ret"  style="width:20%"></div>
+        </div>
+        <div class="bar-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div>Accident Reduction</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0891b2"></div>Exoneration</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Insurance</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Downtime</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Retention</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     BOTTOM
+     ══════════════════════════════════════════════════════════ -->
+<div class="bottom-area">
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> All projections are estimates based on fleet telematics and dash camera industry averages and are intended as a guide only.
+    Telematics: fuel savings assume 12% reduction from idling reduction and route optimization; maintenance 15% from predictive diagnostics; insurance 10% from driver behaviour improvements; productivity assumes 2 hrs/vehicle/week recovered.
+    Dash cameras: accident reduction assumes 22% fewer incidents with in-cab monitoring and driver coaching; exoneration savings assume 30% of incidents are disputed and video evidence reduces settlement cost by 50% in those cases; insurance assumes 12% premium reduction; downtime savings assume a 22% reduction in incident-related vehicle downtime days; driver retention assumes 15% turnover reduction from coaching-based accountability programs.
+    Actual results vary by fleet type, geography, driving patterns, operational practices, and current technology.
+  </div>
+  <div class="print-bar">
+    <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+  </div>
+</div>
+
+
+<!-- FOOTER -->
+<footer>
+  <img src="./argos-logo-white.png" alt="Argos Connected Solutions"
+       onerror="this.src='https://static.wixstatic.com/media/cd21ab_b51892a7f47b4bbf856884a46bd3f756~mv2.png/v1/fill/w_228,h_81,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Argos%20logo%20-%202023%20(1).png'; this.style.filter='brightness(0) invert(1)'" />
+  <p>© 2025 Argos Connected Solutions &nbsp;·&nbsp; Certified Geotab Reseller &nbsp;·&nbsp;
+    <a href="https://www.argosconnected.com" target="_blank">argosconnected.com</a>
+  </p>
+</footer>
+
+<script>
+(function() {
+  function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+  function calcTele() {
+    var fleet = parseFloat(document.getElementById('roi-fleet').value) || 0;
+    var fuel  = parseFloat(document.getElementById('roi-fuel').value)  || 0;
+    var maint = parseFloat(document.getElementById('roi-maint').value) || 0;
+    var ins   = parseFloat(document.getElementById('roi-ins').value)   || 0;
+    var wage  = parseFloat(document.getElementById('roi-wage').value)  || 0;
+
+    var fuelSav  = fleet * fuel  * 12 * 0.12;
+    var maintSav = fleet * maint * 12 * 0.15;
+    var insSav   = fleet * ins   * 0.10;
+    var prodSav  = fleet * wage  * 2 * 52;
+    var total    = fuelSav + maintSav + insSav + prodSav;
+
+    document.getElementById('roi-r-fuel').textContent  = fmt(fuelSav);
+    document.getElementById('roi-r-maint').textContent = fmt(maintSav);
+    document.getElementById('roi-r-ins').textContent   = fmt(insSav);
+    document.getElementById('roi-r-prod').textContent  = fmt(prodSav);
+    document.getElementById('roi-total').textContent   = fmt(total);
+    document.getElementById('roi-monthly').textContent = fmt(total / 12);
+    document.getElementById('roi-fleet-label').textContent = 'Based on ' + Math.round(fleet) + ' vehicle' + (fleet===1?'':'s');
+
+    if (total > 0) {
+      document.getElementById('bar-fuel').style.width  = (fuelSav  / total * 100).toFixed(1) + '%';
+      document.getElementById('bar-maint').style.width = (maintSav / total * 100).toFixed(1) + '%';
+      document.getElementById('bar-ins').style.width   = (insSav   / total * 100).toFixed(1) + '%';
+      document.getElementById('bar-prod').style.width  = (prodSav  / total * 100).toFixed(1) + '%';
+    }
+  }
+
+  function calcCam() {
+    var vehicles     = parseFloat(document.getElementById('cam-vehicles').value)      || 0;
+    var incidents    = parseFloat(document.getElementById('cam-incidents').value)     || 0;
+    var incidentCost = parseFloat(document.getElementById('cam-incident-cost').value) || 0;
+    var insPerVeh    = parseFloat(document.getElementById('cam-ins').value)           || 0;
+    var downtimeDays = parseFloat(document.getElementById('cam-downtime-days').value) || 0;
+    var dailyCost    = parseFloat(document.getElementById('cam-daily-cost').value)    || 0;
+    var drivers      = parseFloat(document.getElementById('cam-drivers').value)       || 0;
+    var hireCost     = parseFloat(document.getElementById('cam-hire-cost').value)     || 0;
+    var turnover     = parseFloat(document.getElementById('cam-turnover').value)      || 0;
+
+    var accSav  = incidents * incidentCost * 0.22;
+    var exonSav = incidents * 0.30 * incidentCost * 0.50;
+    var insSav  = vehicles * insPerVeh * 0.12;
+    var downSav = incidents * 0.22 * downtimeDays * dailyCost;
+    var retSav  = drivers * (turnover / 100) * hireCost * 0.15;
+    var total   = accSav + exonSav + insSav + downSav + retSav;
+
+    document.getElementById('cam-r-acc').textContent   = fmt(accSav);
+    document.getElementById('cam-r-exon').textContent  = fmt(exonSav);
+    document.getElementById('cam-r-ins').textContent   = fmt(insSav);
+    document.getElementById('cam-r-down').textContent  = fmt(downSav);
+    document.getElementById('cam-r-ret').textContent   = fmt(retSav);
+    document.getElementById('cam-total').textContent   = fmt(total);
+    document.getElementById('cam-monthly').textContent = fmt(total / 12);
+    document.getElementById('cam-fleet-label').textContent = 'Based on ' + Math.round(vehicles) + ' camera vehicle' + (vehicles===1?'':'s');
+
+    if (total > 0) {
+      document.getElementById('cam-bar-acc').style.width  = (accSav  / total * 100).toFixed(1) + '%';
+      document.getElementById('cam-bar-exon').style.width = (exonSav / total * 100).toFixed(1) + '%';
+      document.getElementById('cam-bar-ins').style.width  = (insSav  / total * 100).toFixed(1) + '%';
+      document.getElementById('cam-bar-down').style.width = (downSav / total * 100).toFixed(1) + '%';
+      document.getElementById('cam-bar-ret').style.width  = (retSav  / total * 100).toFixed(1) + '%';
+    }
+  }
+
+  ['roi-fleet','roi-fuel','roi-maint','roi-ins','roi-wage'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.addEventListener('input', calcTele);
+  });
+  ['cam-vehicles','cam-incidents','cam-incident-cost','cam-ins',
+   'cam-downtime-days','cam-daily-cost','cam-drivers','cam-hire-cost','cam-turnover'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.addEventListener('input', calcCam);
+  });
+
+  // Auto-mirror fleet size to camera vehicles
+  document.getElementById('roi-fleet').addEventListener('input', function() {
+    var camVeh = document.getElementById('cam-vehicles');
+    if (camVeh) camVeh.value = this.value;
+    calcCam();
+  });
+
+  calcTele();
+  calcCam();
+})();
+</script>
+
+</body>
+</html>
